@@ -33,7 +33,10 @@ public class LoggerFilter implements Filter {
         });
 
         var requestBody = new String(req.getContentAsByteArray());
-        log.info(">>>>> header : {}, body : {}", headerValues, requestBody);
+        var uri = req.getRequestURI();
+        var method = req.getMethod();
+
+        log.info(">>>>> uri: {}, method : {}, header : {}, body : {}", uri, method, headerValues, requestBody);
 
         //response information
         var responseHeaderValues = new StringBuilder();
@@ -44,7 +47,7 @@ public class LoggerFilter implements Filter {
         });
 
         var responseBody = new String(res.getContentAsByteArray());
-        log.info("<<<<< header: {}, body: {}", responseHeaderValues, responseBody);
+        log.info("<<<<< uri : {}, method: {}, header: {}, body: {}", uri, method, responseHeaderValues, responseBody);
 
         //without the copyBodyToResponse(), the response leaving filter will be empty
         //since we read it once above
