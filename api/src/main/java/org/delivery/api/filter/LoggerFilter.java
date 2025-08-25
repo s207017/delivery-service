@@ -29,7 +29,7 @@ public class LoggerFilter implements Filter {
             var headerValue = req.getHeader(headerKey);
 
             // authorization-token : ???, user-agent : ???
-            headerValues.append(headerKey).append(" : ").append(" , ");
+            headerValues.append("[").append(headerKey).append(" : ").append(" , ").append("]");
         });
 
         var requestBody = new String(req.getContentAsByteArray());
@@ -43,7 +43,7 @@ public class LoggerFilter implements Filter {
         res.getHeaderNames().forEach(headerKey -> {
             var headerValue = res.getHeader(headerKey);
 
-            responseHeaderValues.append(headerKey).append(" : ").append(" , ");
+            responseHeaderValues.append("[").append(headerKey).append(" : ").append(" , ").append("]");
         });
 
         var responseBody = new String(res.getContentAsByteArray());
