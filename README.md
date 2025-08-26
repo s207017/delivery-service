@@ -6,4 +6,4 @@ Project WIP (expected ~OCT)
     - Spring Security
     - Spring Cloud API Gateway
     - Redis
-- Ultimately, this project is aimed to implement a CI/CD pipeline as well as monitoring tools in line with industry-level expectations
+- Ultimately, this project aims to implement a CI/CD pipeline as well as monitoring tools in line with industry-level expectations
