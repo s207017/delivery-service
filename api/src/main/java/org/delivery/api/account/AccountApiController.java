@@ -3,6 +3,8 @@ package org.delivery.api.account;
 import lombok.RequiredArgsConstructor;
 import org.delivery.api.account.model.AccountMeResponse;
 import org.delivery.api.common.api.Api;
+import org.delivery.api.common.error.ErrorCode;
+import org.delivery.api.common.exception.ApiException;
 import org.delivery.db.account.AccountEntity;
 import org.delivery.db.account.AccountRepository;
 import org.springframework.beans.factory.annotation.Required;
@@ -27,6 +29,10 @@ public class AccountApiController {
                 .registeredAt(LocalDateTime.now())
                 .build();
 
-        return Api.OK(response);
+        var str = "Hello";
+        var age = 0;
+        throw new ApiException(ErrorCode.SERVER_ERROR, "Error encountered while executing Me()");
+
+        //return Api.OK(response);
     }
 }

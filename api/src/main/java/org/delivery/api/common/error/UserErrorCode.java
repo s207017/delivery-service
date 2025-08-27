@@ -11,7 +11,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 @AllArgsConstructor
 public enum UserErrorCode implements ErrorCodeInterface{
-    //the errorCode is the internal error code, it is not the code that's sent to the client
+    //the errorCode below is the internal error code, it is not the code that's sent to the client
     OK(400, 1404, "Cannot find user");
 
     private final Integer HttpStatusCode;

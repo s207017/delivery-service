@@ -36,7 +36,7 @@ public class Result {
         return Result.builder()
                 .resultCode(errorCodeInterface.getErrorCode())
                 .resultMessage(errorCodeInterface.getDescription())
-                .resultDescription("error")
+                .resultDescription("error occurred")
                 .build();
     }
 
