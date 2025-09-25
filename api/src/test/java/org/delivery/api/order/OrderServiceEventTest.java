@@ -11,6 +11,7 @@ import org.delivery.db.restaurant.RestaurantEntity;
 import org.delivery.db.restaurant.RestaurantRepository;
 import org.delivery.db.user.UserEntity;
 import org.delivery.db.user.UserRepository;
+import org.delivery.db.outbox.OutboxEventRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,6 +55,9 @@ class OrderServiceEventTest {
 
     @MockBean
     private OrderRepository orderRepository;
+
+    @MockBean
+    private OutboxEventRepository outboxEventRepository;
 
     @Test
     void create_publishesOrderCreatedEvent() {
