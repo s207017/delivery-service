@@ -17,6 +17,8 @@ import org.delivery.db.outbox.OutboxStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.delivery.db.user.UserRepository;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,7 @@ public class OrderService {
     private final ObjectMapper objectMapper;
 
     @Transactional
+    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 100))
     public OrderResponse create(OrderCreateRequest request) {
         var user = userRepository.findById(request.getAccountId()).orElseThrow();
         var restaurant = restaurantRepository.findById(request.getRestaurantId()).orElseThrow();
