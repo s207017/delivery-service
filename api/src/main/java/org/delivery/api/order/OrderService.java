@@ -1,6 +1,7 @@
 package org.delivery.api.order;
 
 import lombok.RequiredArgsConstructor;
+import org.delivery.api.order.event.OrderCreatedEvent;
 import org.delivery.api.order.model.OrderCreateRequest;
 import org.delivery.api.order.model.OrderResponse;
 import org.delivery.db.menu.MenuEntity;
@@ -11,6 +12,7 @@ import org.delivery.db.order.OrderRepository;
 import org.delivery.db.order.OrderStatus;
 import org.delivery.db.restaurant.RestaurantRepository;
 import org.delivery.db.user.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class OrderService {
     private final MenuRepository menuRepository;
     private final RestaurantRepository restaurantRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public OrderResponse create(OrderCreateRequest request) {
@@ -48,6 +51,9 @@ public class OrderService {
 
         order.setItems(items);
         var saved = orderRepository.save(order);
+
+        // Publish after successful save (transaction will commit afterwards)
+        eventPublisher.publishEvent(new OrderCreatedEvent(saved.getId()));
 
         return toResponse(saved);
     }
