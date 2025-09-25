@@ -10,6 +10,7 @@ import org.delivery.db.user.UserEntity;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @SuperBuilder
 @Data
@@ -33,6 +34,9 @@ public class OrderEntity extends BaseEntity {
 
     @Column(nullable = false)
     private LocalDateTime orderedAt;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItemEntity> items;
 }
 
 
