@@ -8,6 +8,15 @@ allprojects {
     repositories {
         mavenCentral()
     }
+
+    // Force Java 17 toolchain for compatibility with Spring Boot 2.7 and Lombok
+    plugins.withId('java') {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(17)
+            }
+        }
+    }
 }
 
 bootJar {
