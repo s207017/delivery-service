@@ -1,0 +1,105 @@
+package org.delivery.api.order;
+
+import lombok.RequiredArgsConstructor;
+import org.delivery.api.order.event.OrderCreatedEvent;
+import org.delivery.api.order.model.OrderCreateRequest;
+import org.delivery.api.order.model.OrderResponse;
+import org.delivery.db.menu.MenuEntity;
+import org.delivery.db.menu.MenuRepository;
+import org.delivery.db.order.OrderEntity;
+import org.delivery.db.order.OrderItemEntity;
+import org.delivery.db.order.OrderRepository;
+import org.delivery.db.order.OrderStatus;
+import org.delivery.db.restaurant.RestaurantRepository;
+import org.delivery.db.user.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final MenuRepository menuRepository;
+    private final RestaurantRepository restaurantRepository;
+    private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Transactional
+    public OrderResponse create(OrderCreateRequest request) {
+        var user = userRepository.findById(request.getAccountId()).orElseThrow();
+        var restaurant = restaurantRepository.findById(request.getRestaurantId()).orElseThrow();
+
+        var order = OrderEntity.builder()
+                .account(user)
+                .restaurant(restaurant)
+                .status(OrderStatus.CREATED)
+                .orderedAt(LocalDateTime.now())
+                .build();
+
+        var items = request.getItems().stream().map(i -> {
+            var menu = menuRepository.findById(i.getMenuId()).orElseThrow();
+            decrementStockWithOptimisticLock(menu, i.getQuantity());
+            return buildOrderItem(order, menu, i.getQuantity(), menu.getPrice());
+        }).collect(Collectors.toList());
+
+        order.setItems(items);
+        var saved = orderRepository.save(order);
+
+        // Publish after successful save (transaction will commit afterwards)
+        eventPublisher.publishEvent(new OrderCreatedEvent(saved.getId()));
+
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse get(Long id) {
+        var order = orderRepository.findById(id).orElseThrow();
+        return toResponse(order);
+    }
+
+    private void decrementStockWithOptimisticLock(MenuEntity menu, int qty) {
+        var remaining = menu.getStock() - qty;
+        if (remaining < 0) {
+            throw new IllegalStateException("Insufficient stock");
+        }
+        menu.setStock(remaining);
+    }
+
+    private OrderItemEntity buildOrderItem(OrderEntity order, MenuEntity menu, int quantity, BigDecimal unitPrice) {
+        var item = OrderItemEntity.builder()
+                .order(order)
+                .menu(menu)
+                .quantity(quantity)
+                .unitPrice(unitPrice)
+                .build();
+        return item;
+    }
+
+    private OrderResponse toResponse(OrderEntity entity) {
+        List<OrderResponse.OrderResponseItem> items = entity.getItems() == null ? List.of() : entity.getItems().stream()
+                .map(i -> OrderResponse.OrderResponseItem.builder()
+                        .menuId(i.getMenu().getId())
+                        .quantity(i.getQuantity())
+                        .unitPrice(i.getUnitPrice().toPlainString())
+                        .build())
+                .collect(Collectors.toList());
+
+        return OrderResponse.builder()
+                .id(entity.getId())
+                .accountId(entity.getAccount().getId())
+                .restaurantId(entity.getRestaurant().getId())
+                .status(entity.getStatus().name())
+                .orderedAt(entity.getOrderedAt())
+                .items(items)
+                .build();
+    }
+}
+
+
