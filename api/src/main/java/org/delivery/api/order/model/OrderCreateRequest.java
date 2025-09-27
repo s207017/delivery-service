@@ -10,9 +10,6 @@ import java.util.List;
 @Data
 public class OrderCreateRequest {
     @NotNull
-    private Long accountId;
-
-    @NotNull
     private Long restaurantId;
 
     @NotEmpty

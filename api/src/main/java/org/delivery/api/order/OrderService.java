@@ -19,6 +19,8 @@ import org.delivery.db.user.UserRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +44,11 @@ public class OrderService {
     @Transactional
     @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 100))
     public OrderResponse create(OrderCreateRequest request) {
-        var user = userRepository.findById(request.getAccountId()).orElseThrow();
+        // Get authenticated user from security context
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = auth.getName();
+        var user = userRepository.findByEmail(userEmail).orElseThrow();
+        
         var restaurant = restaurantRepository.findById(request.getRestaurantId()).orElseThrow();
 
         var order = OrderEntity.builder()
