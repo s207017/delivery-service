@@ -11,8 +11,16 @@ import org.delivery.db.order.OrderItemEntity;
 import org.delivery.db.order.OrderRepository;
 import org.delivery.db.order.OrderStatus;
 import org.delivery.db.restaurant.RestaurantRepository;
+import org.delivery.db.outbox.OutboxEventEntity;
+import org.delivery.db.outbox.OutboxEventRepository;
+import org.delivery.db.outbox.OutboxStatus;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.delivery.db.user.UserRepository;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +38,17 @@ public class OrderService {
     private final RestaurantRepository restaurantRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
+    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 100))
     public OrderResponse create(OrderCreateRequest request) {
-        var user = userRepository.findById(request.getAccountId()).orElseThrow();
+        // Get authenticated user from security context
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = auth.getName();
+        var user = userRepository.findByEmail(userEmail).orElseThrow();
+        
         var restaurant = restaurantRepository.findById(request.getRestaurantId()).orElseThrow();
 
         var order = OrderEntity.builder()
@@ -52,12 +67,29 @@ public class OrderService {
         order.setItems(items);
         var saved = orderRepository.save(order);
 
-        // Publish after successful save (transaction will commit afterwards)
+        // Write to outbox for reliable asynchronous processing
+        writeOutbox("OrderCreated", saved.getId());
+
+        // Backward-compatible in-process event (can be removed once outbox publisher is relied upon)
         eventPublisher.publishEvent(new OrderCreatedEvent(saved.getId()));
 
         return toResponse(saved);
     }
 
+    private void writeOutbox(String eventType, Long orderId) {
+        try {
+            var payload = objectMapper.createObjectNode().put("orderId", orderId).toString();
+            var outbox = OutboxEventEntity.builder()
+                    .eventType(eventType)
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            outboxEventRepository.save(outbox);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to write outbox event", e);
+        }
+    }
     @Transactional(readOnly = true)
     public OrderResponse get(Long id) {
         var order = orderRepository.findById(id).orElseThrow();

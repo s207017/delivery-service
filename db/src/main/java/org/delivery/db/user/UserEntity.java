@@ -30,6 +30,10 @@ public class UserEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private UserStatus status;
 
+    @Column(length = 20, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
+
     @Column(length = 150, nullable = false)
     private String address;
 
